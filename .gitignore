@@ -1,0 +1,12 @@
+
+# binaries
+build/
+out/
+
+# IDE / editor configs
+.vscode/
+.vs/
+
+# esp idf configs
+sdkconfig
+sdkconfig.old
