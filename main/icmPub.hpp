@@ -21,7 +21,7 @@ public:
 
 private:
     rcl_timer_t timer;
-    rcl_publisher_t imuPublisher;
+    rcl_publisher_t imuPublisher, magPublisher;
     static icm* handler;
     static icmPub* defaultPub;
 };

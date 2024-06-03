@@ -7,6 +7,7 @@
 #include <sensor_msgs/msg/imu.h>
 #include <sensor_msgs/msg/magnetic_field.h>
 
+#include <pinMap.hpp>
 #define LOG "icmPub"
 
 const rosidl_message_type_support_t * imu_type_support = ROSIDL_GET_MSG_TYPE_SUPPORT(sensor_msgs, msg, Imu);
@@ -18,7 +19,7 @@ icmPub*  icmPub::defaultPub = 0;
 
 
 icmPub::icmPub(){
-    handler = new icm();
+    handler = new icm(ICM_MOSI, ICM_MISO, ICM_CLK, ICM_CS);
     defaultPub = this;
 }
 
@@ -26,7 +27,7 @@ icmPub::icmPub(){
 void icmPub::init()
 {
     rclc_publisher_init_default(&imuPublisher, node, imu_type_support, "imu/data_raw");
-    // rclc_publisher_init_default(&magPublisher, &node, mag_type_support, "imu/mag");
+    rclc_publisher_init_default(&magPublisher, node, mag_type_support, "imu/mag");
 
     rclc_timer_init_default(&timer, support, RCL_MS_TO_NS(100), icmPub::icm_callback);
 
@@ -37,17 +38,12 @@ void icmPub::init()
 void icmPub::icm_callback(rcl_timer_s* time, int64_t num){
 
     handler->update();
-    // MPU.heading(&magRaw);
-    // MPU.motion(&accelRaw, &gyroRaw, &magRaw);
 
     sensor_msgs__msg__Imu data;
     sensor_msgs__msg__Imu__init(&data);
 
-    
-
     sensor_msgs__msg__MagneticField magData;
     sensor_msgs__msg__MagneticField__init(&magData);
-
 
     data.header.stamp.nanosec = rmw_uros_epoch_nanos();
     data.header.stamp.sec = rmw_uros_epoch_millis() / 1000;
@@ -70,11 +66,16 @@ void icmPub::icm_callback(rcl_timer_s* time, int64_t num){
     memset(data.linear_acceleration_covariance, 0, sizeof(data.angular_velocity_covariance));
 
     
-    // magData.magnetic_field.x = magRaw.x * 0.15f;
-    // magData.magnetic_field.y = magRaw.y * 0.15f;
-    // magData.magnetic_field.z = magRaw.z * 0.15f;
+    // magData.magnetic_field.x = handler->x;
+    // magData.magnetic_field.y = handler->y;
+    // magData.magnetic_field.z = handler->z;
+
+    magData.magnetic_field.x = 0.0f;
+    magData.magnetic_field.y = 0.0f;
+    magData.magnetic_field.z = 0.0f;
+
     rcl_publish(&defaultPub->imuPublisher, &data, NULL);
-    // rcl_publish(&magPublisher, &magData, NULL);
+    rcl_publish(&defaultPub->magPublisher, &magData, NULL);
         
     ESP_LOGI(LOG, " ax %d %f ay %d %f az %d %f  gx %d %f gy %d %f gz %d %f temp %f", 
     handler->rawData.ax, handler->data.ax,
