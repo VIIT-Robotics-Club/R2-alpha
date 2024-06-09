@@ -51,18 +51,27 @@ public:
      * @return 
      */
     static wheelSpeed map(float x, float y, float w){
-        float si, co, mag, theta;
+        // invert w to correct for inverted axis
+        w = -w;
+        y = -y;
+        float si, co, max, theta = atan2(y, x), power = sqrt( x * x + y * y);
 
-        theta = atan2(y, x);
         si = sin(theta - M_PI/4);
         co = cos(theta - M_PI/4);
-        mag = abs(si) > abs(co) ? abs(si) : abs(co);
+        max = abs(si) > abs(co) ? abs(si) : abs(co);
 
         wheelSpeed ret;
-        ret.fl = y * co / mag + w;
-        ret.fr = y * si / mag - w;
-        ret.bl = y * si / mag + w;
-        ret.br = y * co / mag - w;
+        ret.fl = power * co / max + w;
+        ret.fr = power * si / max - w;
+        ret.bl = power * si / max + w;
+        ret.br = power * co / max - w;
+
+        if((power + abs(w)) > 1){
+            ret.fl /= power + w;
+            ret.fr /= power + w;
+            ret.bl /= power + w;
+            ret.br /= power + w;
+        };
 
         return ret;
     }
@@ -71,14 +80,18 @@ public:
     static void cmdVelCallback(const void* msgIn){
         const geometry_msgs__msg__Twist * msg = (const geometry_msgs__msg__Twist *)msgIn;
 
-        wheelSpeed mapped = map(msg->linear.x, msg->linear.y, msg->angular.z / 4.0f);
-        memcpy(def->handler->speeds, &mapped, sizeof(wheelSpeed));
+        wheelSpeed mapped = map(msg->linear.y, msg->linear.x, msg->angular.z / 2.0f);
+        memcpy(def->handler->speeds, &mapped, 4 * sizeof(float));
         def->handler->update();
 
-        ESP_LOGI("CMD_VEL_SUB", "x %f y %f w %f", 
+        ESP_LOGI("CMD_VEL_SUB", " x %f y %f w %f fl %f fr %f bl %f br %f ",
             msg->linear.x,
             msg->linear.y,
-            msg->angular.z
+            msg->angular.z,
+            mapped.fl,
+            mapped.fr,
+            mapped.bl,
+            mapped.br
         );
     };
 

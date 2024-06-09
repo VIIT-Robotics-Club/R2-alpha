@@ -19,7 +19,7 @@ icmPub*  icmPub::defaultPub = 0;
 
 
 icmPub::icmPub(){
-    handler = new icm(ICM_MOSI, ICM_MISO, ICM_CLK, ICM_CS);
+    handler = new icm(ICM_MISO, ICM_MOSI, ICM_CLK, ICM_CS);
     defaultPub = this;
 }
 
