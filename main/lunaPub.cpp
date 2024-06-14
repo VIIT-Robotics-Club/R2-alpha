@@ -21,18 +21,23 @@ const rosidl_message_type_support_t * luna_type_support = ROSIDL_GET_MSG_TYPE_SU
 lunaHandler* lunaPub::luna_handler = 0;
 lunaPub* lunaPub::luna_pub = 0;
 
-lunaPub::lunaPub() {
+lunaPub::lunaPub(int freq) {
     luna_pub = this;
     luna_handler =  new lunaHandler(A_LUNA_SCL, A_LUNA_SDA, lunaAddresses, 4);
+    pubDelayMs = 1000.0f / (float) freq;
 }
 
 void lunaPub::init() {
-    rclc_publisher_init_best_effort(&lunaPublisher1, node, luna_type_support, "luna_fr");
-    rclc_publisher_init_best_effort(&lunaPublisher2, node, luna_type_support, "luna_fl");
-    rclc_publisher_init_best_effort(&lunaPublisher3, node, luna_type_support, "luna_rf");
-    rclc_publisher_init_best_effort(&lunaPublisher4, node, luna_type_support, "luna_rb");
+    rclc_publisher_init_default(&lunaPublisher1, node, luna_type_support, "luna_fr");
+    rclc_publisher_init_default(&lunaPublisher2, node, luna_type_support, "luna_fl");
+    rclc_publisher_init_default(&lunaPublisher3, node, luna_type_support, "luna_rf");
+    rclc_publisher_init_default(&lunaPublisher4, node, luna_type_support, "luna_rb");
+    // rclc_publisher_init_best_effort(&lunaPublisher1, node, luna_type_support, "luna_fr");
+    // rclc_publisher_init_best_effort(&lunaPublisher2, node, luna_type_support, "luna_fl");
+    // rclc_publisher_init_best_effort(&lunaPublisher3, node, luna_type_support, "luna_rf");
+    // rclc_publisher_init_best_effort(&lunaPublisher4, node, luna_type_support, "luna_rb");
 
-    rclc_timer_init_default(&timer, support, RCL_MS_TO_NS(100), lunaPub::luna_callback);
+    rclc_timer_init_default(&timer, support, RCL_MS_TO_NS(pubDelayMs), lunaPub::luna_callback);
     rclc_executor_add_timer(exec, &timer);
 }
 

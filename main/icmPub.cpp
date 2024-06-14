@@ -18,9 +18,10 @@ icm*  icmPub::handler = 0;
 icmPub*  icmPub::defaultPub = 0;
 
 
-icmPub::icmPub(){
+icmPub::icmPub(int freq){
     handler = new icm(ICM_MISO, ICM_MOSI, ICM_CLK, ICM_CS);
     defaultPub = this;
+    pubDelayMs = 1000.0f / (float) freq; 
 }
 
 
@@ -29,7 +30,7 @@ void icmPub::init()
     rclc_publisher_init_default(&imuPublisher, node, imu_type_support, "imu/data_raw");
     rclc_publisher_init_default(&magPublisher, node, mag_type_support, "imu/mag");
 
-    rclc_timer_init_default(&timer, support, RCL_MS_TO_NS(100), icmPub::icm_callback);
+    rclc_timer_init_default(&timer, support, RCL_MS_TO_NS(pubDelayMs), icmPub::icm_callback);
 
     rclc_executor_add_timer(exec, &timer);
 }
@@ -77,15 +78,15 @@ void icmPub::icm_callback(rcl_timer_s* time, int64_t num){
     rcl_publish(&defaultPub->imuPublisher, &data, NULL);
     rcl_publish(&defaultPub->magPublisher, &magData, NULL);
         
-    ESP_LOGI(LOG, " ax %d %f ay %d %f az %d %f  gx %d %f gy %d %f gz %d %f temp %f", 
-    handler->rawData.ax, handler->data.ax,
-    handler->rawData.ay, handler->data.ay,
-    handler->rawData.az, handler->data.az, 
-    handler->rawData.gx, handler->data.gx,
-    handler->rawData.gy, handler->data.gy,
-    handler->rawData.gz, handler->data.gz,
-    handler->data.temp
-    );
+    // ESP_LOGI(LOG, " ax %d %f ay %d %f az %d %f  gx %d %f gy %d %f gz %d %f temp %f", 
+    // handler->rawData.ax, handler->data.ax,
+    // handler->rawData.ay, handler->data.ay,
+    // handler->rawData.az, handler->data.az, 
+    // handler->rawData.gx, handler->data.gx,
+    // handler->rawData.gy, handler->data.gy,
+    // handler->rawData.gz, handler->data.gz,
+    // handler->data.temp
+    // );
     // magData.magnetic_field.x, magData.magnetic_field.y, magData.magnetic_field.z);
 };
 

@@ -10,3 +10,6 @@ out/
 # esp idf configs
 sdkconfig
 sdkconfig.old
+
+managed_components/
+dependencies.lock

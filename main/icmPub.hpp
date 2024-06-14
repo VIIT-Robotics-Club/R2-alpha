@@ -4,13 +4,14 @@
 #include <urosElement.hpp>
 #include <icm.hpp>
 
+#define ICM_DEF_FREQ 20
 
 class icmPub : public urosElement {
 
 public:
 
     // initialize hardware interface here
-    icmPub();
+    icmPub(int freq = ICM_DEF_FREQ);
 
     // initialize micro-ros publisher / subscribers here
     void init();
@@ -20,6 +21,8 @@ public:
 
 
 private:
+
+    float pubDelayMs = 1000 / ICM_DEF_FREQ;
     rcl_timer_t timer;
     rcl_publisher_t imuPublisher, magPublisher;
     static icm* handler;

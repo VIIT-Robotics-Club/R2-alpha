@@ -1,12 +1,14 @@
 #include <urosElement.hpp>
 #include "lunaHandler.hpp"
 
+
+#define LUNA_DEF_FREQ 10
 class lunaPub : public urosElement {
 
 public:
 
     // initialize hardware interface here
-    lunaPub();
+    lunaPub(int freq = LUNA_DEF_FREQ);
 
     // initialize micro-ros publisher / subscribers here
     void init();
@@ -16,6 +18,7 @@ public:
 
 
 private:
+    float pubDelayMs = 1000 / LUNA_DEF_FREQ;
     rcl_timer_t timer;
     rcl_publisher_t lunaPublisher1;
     rcl_publisher_t lunaPublisher2;
