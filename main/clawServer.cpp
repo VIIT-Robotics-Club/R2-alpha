@@ -10,127 +10,112 @@
 #include <inttypes.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
-// #include "qmd.hpp"
+
+#include <pinMap.hpp>
+
 
 // GPIO & Constants Declarations
-const char* TAG = "shared_interrupt";
+const char* TAG = "gripper service";
 const char* CLAW_TAG = "Claw";
 bool triggered = false;
 
-
+qmd* clawServer::handler = 0;
+clawServer* clawServer::current = 0;
 
 const rosidl_service_type_support_t * lift_service_type_support = ROSIDL_GET_SRV_TYPE_SUPPORT(std_srvs, srv, SetBool);
 const rosidl_service_type_support_t * claw_service_type_support = ROSIDL_GET_SRV_TYPE_SUPPORT(std_srvs, srv, SetBool);
 
-clawServer::clawServer() {
-    
-    // Configure GPIO_INPUT_PIN1
-    gpio_config_t io_conf1 = configure_interrupt(GPIO_NUM_4);
-    gpio_config(&io_conf1);
+clawServer::clawServer(qmd* handler) {
+    current = this;
+    clawServer::handler = handler;
 
-    // Configure GPIO_INPUT_PIN2
-    gpio_config_t io_conf2 = configure_interrupt(GPIO_NUM_19);
-    gpio_config(&io_conf2);
+    // configure gpio pins for trigger
+    gpio_config_t triggerConf {
+        .pin_bit_mask = (uint64_t)((1 << LIFT_UPPER_INTR) | (1 << LIFT_LOWER_INTR)),
+        .mode = GPIO_MODE_INPUT,
+        .pull_up_en = GPIO_PULLUP_ENABLE,
+        .intr_type = GPIO_INTR_NEGEDGE,
+    };
 
+    gpio_config(&triggerConf);
 
-    // Install GPIO ISR service with shared interrupt flag
-    gpio_install_isr_service(ESP_INTR_FLAG_SHARED);
+    gpio_install_isr_service(ESP_INTR_FLAG_EDGE);
 
-    // Attach the shared interrupt service routine to GPIO pins
-    gpio_isr_handler_add(GPIO_NUM_4, gpio_isr_handler, (void *) GPIO_NUM_4);
-    gpio_isr_handler_add(GPIO_NUM_19, gpio_isr_handler,(void *) GPIO_NUM_19);
+    std_srvs__srv__SetBool_Request__init(&req_lift);
+    std_srvs__srv__SetBool_Response__init(&res_lift);
+    std_srvs__srv__SetBool_Request__init(&req_claw);
+    std_srvs__srv__SetBool_Response__init(&res_claw);
+
+    gpio_isr_handler_add(LIFT_UPPER_INTR, gpio_isr_handler,  this);
+    gpio_isr_handler_add(LIFT_LOWER_INTR, gpio_isr_handler, this);
 
     // Enable the interrupts
-    gpio_intr_enable(GPIO_NUM_4);
-    gpio_intr_enable(GPIO_NUM_19);
-     // Log
-    ESP_LOGI(TAG, "Shared interrupt configured for GPIO %d and GPIO %d", GPIO_NUM_4, GPIO_NUM_19);
+    gpio_intr_enable(LIFT_UPPER_INTR);
+    gpio_intr_enable(LIFT_LOWER_INTR);
 }
 
 void clawServer::init() {
-    // Initialise
-    ESP_LOGI(TAG, "Initializing services...");
 
-    rcl_ret_t rc;
-
-    rc = rclc_service_init_default(&lift_service, node, lift_service_type_support, "service_lift");
-    if (rc != RCL_RET_OK) {
+    if (rclc_service_init_default(&lift_service, node, lift_service_type_support, "gripper_lift") != RCL_RET_OK) {
         ESP_LOGE(TAG, "Failed to initialize lift service");
     }
 
-    rc = rclc_service_init_default(&claw_service, node, claw_service_type_support, "service_claw");
-    if (rc != RCL_RET_OK) {
+    if (rclc_service_init_default(&claw_service, node, claw_service_type_support, "gripper_grab") != RCL_RET_OK) {
         ESP_LOGE(TAG, "Failed to initialize claw service");
     }
 
-    rclc_executor_add_service(exec, &claw_service, &req_claw, &res_claw, service_callback_claw);
-    rclc_executor_add_service(exec, &lift_service, &req_lift, &res_lift, service_callback_lift);
-    ESP_LOGI(TAG, "Service Init has been called");
+    rclc_executor_add_service_with_request_id(exec, &claw_service, &req_claw, &res_claw, service_callback_claw);
+    rclc_executor_add_service_with_request_id(exec, &lift_service, &req_lift, &res_lift, service_callback_lift);
+    ESP_LOGI(TAG, "lift and grab Services has been  Initialized ");
 
 
 }
 // Service to handle lift movement
-void clawServer::service_callback_lift(const void * req, void * res){
+void clawServer::service_callback_lift(const void * req, rmw_request_id_t * reqId, void * res){
 
     std_srvs__srv__SetBool_Request * req_lift=(std_srvs__srv__SetBool_Request *) req;
     std_srvs__srv__SetBool_Response * res_lift=(std_srvs__srv__SetBool_Response *) res;
-    ESP_LOGI(TAG,"Lift Service called...");
 
     if(req_lift->data){
-        // qmd::speeds[4] = 1; // Start motor to move upwards at max speed
-        ESP_LOGI(TAG,"Lift Going Upwards");
-        res_lift->success = true;
+        // ESP_LOGI(TAG,"Lift Going Up last state %f",  handler->speeds[4]);
+        ESP_LOGI(TAG,"Lift Going Up");
+        handler->speeds[4] = -1.0f; // Start motor to move upwards at max speed
     }
     else {
-        // qmd::speeds[4] = -1; // Start motor to move downward at max speed
+        handler->speeds[4] = 1.0f; // Start motor to move downward at max speed
         ESP_LOGI(TAG,"Lift Going Down");
-        res_lift->success = true;
     }
-        // Debugging Purpose    
-    // while(1) {
-    // if (triggered) {
-    //     ESP_LOGI(TAG, "Interrupt triggered");
-    //     triggered = false;
-    // }
-    // vTaskDelay(pdMS_TO_TICKS(10));
-    // }
+
+    handler->update();
+    res_lift->success = true;
+    rcl_send_response(&current->lift_service, reqId, res_lift);
 }
 
 // Service to handle claw movement
-void clawServer::service_callback_claw(const void * req1, void * res1){
+void clawServer::service_callback_claw(const void * req1, rmw_request_id_t * reqId,  void * res1){
   
     std_srvs__srv__SetBool_Request * req_claw=(std_srvs__srv__SetBool_Request *) req1;
     std_srvs__srv__SetBool_Response * res_claw=(std_srvs__srv__SetBool_Response *) res1;
 
     if(req_claw->data){
-        // qmd::speeds[4] = 1; // Start motor to move upwards at max speed
-        ESP_LOGI(CLAW_TAG,"Lift Going Upwards");
-        res_claw->success = true;
+        handler->speeds[5] = 1.0f; // Start motor to move upwards at max speed
+        ESP_LOGI(CLAW_TAG,"closing claw");
         // res_claw->message = "Lift Up";
     }
     else {
-        // qmd::speeds[4] = -1; // Start motor to move downward at max speed
-        ESP_LOGI(CLAW_TAG,"Lift Going Downwards");
-        res_claw->success = true;
-        // res_claw->message = "Lift Down";
+        handler->speeds[5] = -1.0f; // Start motor to move downward at max speed
+        ESP_LOGI(CLAW_TAG,"opening claw");
     }
+
+    handler->update();
+    res_claw->success = true;
+    rcl_send_response(&current->claw_service, reqId, res_claw);
 }
 
 
 // Interrupt Service Routine to Stop Lift Motion
 void clawServer::gpio_isr_handler(void* arg) {
-    triggered = true;
-    // qmd::speeds[4] = 0; // Set PWM = 0 to stop the Lift
+    clawServer* ctx = (clawServer*) arg;
+    handler->speeds[4] = 0.0f; // Set PWM = 0 to stop the Lift
+    handler->update();
 }
-
-
-gpio_config_t clawServer::configure_interrupt(int gpio_pin){
-    gpio_config_t io_conf;
-    io_conf.intr_type = GPIO_INTR_NEGEDGE;
-    io_conf.mode = GPIO_MODE_INPUT;
-    io_conf.pin_bit_mask = (1ULL << gpio_pin);
-    io_conf.pull_down_en = GPIO_PULLDOWN_DISABLE;
-    io_conf.pull_up_en = GPIO_PULLUP_ENABLE;
-    return io_conf;
-}
-

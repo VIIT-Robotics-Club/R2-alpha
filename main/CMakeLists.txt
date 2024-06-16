@@ -1,3 +1,3 @@
-idf_component_register(SRCS "lunaPub.cpp" "main.cpp" "icmPub.cpp"
+idf_component_register(SRCS "velDriver.cpp" "clawServer.cpp" "lunaPub.cpp" "main.cpp" "icmPub.cpp"
                     INCLUDE_DIRS "."
                     REQUIRES urosHandler icm-20948 qmd luna lsaHandler)
