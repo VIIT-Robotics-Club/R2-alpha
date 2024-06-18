@@ -1,4 +1,7 @@
 
+#ifndef VEL_DRIVER_HPP
+#define  VEL_DRIVER_HPP
+
 
 #include <math.h>
 
@@ -8,8 +11,6 @@
 #include <rclc/rclc.h>
 #include <urosElement.hpp>
 #include <geometry_msgs/msg/twist.h>
-
-
 
 /**
  * @brief wheelSpeed to represent normalized wheel speed
@@ -30,17 +31,9 @@ public:
     const rosidl_message_type_support_t * twistMsgType = ROSIDL_GET_MSG_TYPE_SUPPORT(geometry_msgs, msg, Twist);
     static velDriver* def;
 
-    velDriver(qmd* drv) : handler(drv) {
-        def = this;
-    };
+    velDriver(qmd* drv);
 
-    void init() {
-        rclc_subscription_init_default(&sub, node, twistMsgType, "/cmd_vel");
-        geometry_msgs__msg__Twist__init(&msgAlloc);
-        rclc_executor_add_subscription(exec, &sub, &msgAlloc, cmdVelCallback, ON_NEW_DATA);
-    };
-
-
+    void init();
 
     /**
      * @brief  mapping function for cmd_vel to motor speed translation
@@ -50,52 +43,11 @@ public:
      * @param w normalized yaw
      * @return 
      */
-    static wheelSpeed map(float x, float y, float w){
-        // invert w to correct for inverted axis
-        w = -w;
-        y = -y;
-        float si, co, max, theta = atan2(y, x), power = sqrt( x * x + y * y);
+    static wheelSpeed map(float x, float y, float w);
 
-        si = sin(theta - M_PI/4);
-        co = cos(theta - M_PI/4);
-        max = abs(si) > abs(co) ? abs(si) : abs(co);
+    static void cmdVelCallback(const void* msgIn);
 
-        wheelSpeed ret;
-        ret.fl = power * co / max + w;
-        ret.fr = power * si / max - w;
-        ret.bl = power * si / max + w;
-        ret.br = power * co / max - w;
-
-        if((power + abs(w)) > 1){
-            ret.fl /= power + w;
-            ret.fr /= power + w;
-            ret.bl /= power + w;
-            ret.br /= power + w;
-        };
-
-        return ret;
-    }
-
-
-    static void cmdVelCallback(const void* msgIn){
-        const geometry_msgs__msg__Twist * msg = (const geometry_msgs__msg__Twist *)msgIn;
-
-        wheelSpeed mapped = map(msg->linear.y, msg->linear.x, msg->angular.z / 2.0f);
-        memcpy(def->handler->speeds, &mapped, 4 * sizeof(float));
-        def->handler->update();
-
-        ESP_LOGI("CMD_VEL_SUB", " x %f y %f w %f fl %f fr %f bl %f br %f ",
-            msg->linear.x,
-            msg->linear.y,
-            msg->angular.z,
-            mapped.fl,
-            mapped.fr,
-            mapped.bl,
-            mapped.br
-        );
-    };
-
-    qmd* handler;
+    qmd* handler = 0;
 
 private:
     rcl_subscription_t sub;
@@ -103,5 +55,4 @@ private:
 };
 
 
-
-velDriver* velDriver::def = 0;
+#endif // VEL_DRIVER_HPP
