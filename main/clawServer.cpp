@@ -134,7 +134,7 @@ int isrCount = 0;
 void clawServer::stopClawTask(void *ptr){
 
     while(1){
-        // xTaskNotifyWait(0, 0x00, nullptr, portMAX_DELAY);
+        xTaskNotifyWait(0, 0x00, nullptr, portMAX_DELAY);
         current->handler->speeds[LIFT_QMD_INDEX] = 0.0f;
         current->handler->update();
         ESP_LOGI(TAG, "logical interrupt called, motor lift stopped %d", isrCount);

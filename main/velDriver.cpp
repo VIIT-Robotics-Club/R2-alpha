@@ -73,13 +73,13 @@ void velDriver::cmdVelCallback(const void* msgIn){
     // def->handler->speeds[5] = msg->linear.y / 2.0f;
     def->handler->update();
 
-    // ESP_LOGI("CMD_VEL_SUB", " x %f y %f w %f fl %f fr %f bl %f br %f ",
-    //     msg->linear.x,
-    //     msg->linear.y,
-    //     msg->angular.z,
-    //     mapped.fl,
-    //     mapped.fr,
-    //     mapped.bl,
-    //     mapped.br
-    // );
+    ESP_LOGI("CMD_VEL_SUB", " x %f y %f w %f fl %f fr %f bl %f br %f ",
+        msg->linear.x,
+        msg->linear.y,
+        msg->angular.z,
+        mapped.fl,
+        mapped.fr,
+        mapped.bl,
+        mapped.br
+    );
 };
