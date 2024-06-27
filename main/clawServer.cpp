@@ -9,7 +9,6 @@
 
 #include <inttypes.h>
 
-
 #include <pinMap.hpp>
 
 
@@ -129,15 +128,26 @@ void clawServer::service_callback_grab(const void * req1, rmw_request_id_t * req
     rcl_ret_t result = rcl_send_response(&current->claw_service, reqId, res_claw);
 }
 
-int isrCount = 0;
+// int isrCount = 0;
 
 void clawServer::stopClawTask(void *ptr){
 
+    clawServer* obj = (clawServer*) ptr;
+
     while(1){
         xTaskNotifyWait(0, 0x00, nullptr, portMAX_DELAY);
+
+        // maintain time difference between adjacent interrupts and filter based on threshold filter
+        std::chrono::milliseconds now = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch());
+        obj->diff = now - obj->lastTick;
+        obj->lastTick = now;
+
+        if(obj->diff.count() > LIFT_ISR_TIME_DIFF_THRESH) continue; 
+
+        // stop lift motor
         current->handler->speeds[LIFT_QMD_INDEX] = 0.0f;
         current->handler->update();
-        ESP_LOGI(TAG, "logical interrupt called, motor lift stopped %d", isrCount);
+        // ESP_LOGI(TAG, "logical interrupt called, motor lift stopped");
         vTaskDelay(pdMS_TO_TICKS(10));
     };
 

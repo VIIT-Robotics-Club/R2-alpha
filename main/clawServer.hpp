@@ -1,6 +1,8 @@
 #ifndef CLAW_SERVICE_HPP
 #define CLAW_SERVICE_HPP
 
+#include <chrono>
+
 #include "esp_intr_alloc.h"
 #include "esp_attr.h"
 #include "esp_intr_types.h"
@@ -15,11 +17,14 @@
 #include <freertos/task.h>
 
 
+
 #define LIFT_QMD_INDEX (4)   // qmd index for lift motor  
 #define GRAB_QMD_INDEX (5)   // qmd index for grab motor  
 #define LIFT_SPEED (0.5f)    // motor speed for lift 
 #define GRAB_FORCE (0.5f)    // motor speed for grab
 #define GRAB_ACTIVE_TIME (1000) // active time for grab motor to active in miliseconds
+
+#define LIFT_ISR_TIME_DIFF_THRESH 10
 // gpio_config_t io_conf;
 
 // rcl_service_t lift_service;
@@ -43,7 +48,7 @@ public:
 
     // direction of movement in last trasaction
     bool headingUp = false;
-private:
+// private:
     
     static qmd* handler;
     static clawServer* current; 
@@ -54,6 +59,8 @@ private:
     std_srvs__srv__SetBool_Response res_lift;
     std_srvs__srv__SetBool_Request req_claw;
     std_srvs__srv__SetBool_Response res_claw;
+
+    std::chrono::milliseconds lastTick, diff;
 
 
     TaskHandle_t clawStopThreadHandle;
