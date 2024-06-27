@@ -1,5 +1,7 @@
 
-
+// #ifndef 
+// #define 
+// #endif // 
 #include <math.h>
 
 #include <esp_log.h>
@@ -42,6 +44,21 @@ public:
 
 
 
+    void run(float x, float y, float w){
+        wheelSpeed mapped = map(y, x, -w / 2.0f);
+        memcpy(def->handler->speeds, &mapped, 4 * sizeof(float));
+        def->handler->update();
+
+        ESP_LOGI("CMD_VEL_SUB", " x %f y %f w %f fl %f fr %f bl %f br %f ",
+            x,
+            y,
+            w,
+            mapped.fl,
+            mapped.fr,
+            mapped.bl,
+            mapped.br
+        );
+    }
     /**
      * @brief  mapping function for cmd_vel to motor speed translation
      * 
@@ -51,18 +68,44 @@ public:
      * @return 
      */
     static wheelSpeed map(float x, float y, float w){
-        float si, co, mag, theta;
+        // invert w to correct for inverted axis
+        w = -w;
+        x = -x;
+    
+        float si, co, max, theta = atan2(y, x), power = sqrt( x * x + y * y);
 
-        theta = atan2(y, x);
         si = sin(theta - M_PI/4);
         co = cos(theta - M_PI/4);
-        mag = abs(si) > abs(co) ? abs(si) : abs(co);
+        max = abs(si) > abs(co) ? abs(si) : abs(co);
 
         wheelSpeed ret;
-        ret.fl = y * co / mag + w;
-        ret.fr = y * si / mag - w;
-        ret.bl = y * si / mag + w;
-        ret.br = y * co / mag - w;
+        // ret.fl = power * co / max + w;
+        // ret.fr = power * si / max - w;
+        // ret.bl = power * si / max + w;
+        // ret.br = power * co / max - w;
+
+        ret.fl = power * co + w;
+        ret.fr = power * si - w;
+        ret.bl = power * si + w;
+        ret.br = power * co - w;
+
+
+        float overShootMax = 1.0f;
+        for(int i = 0; i < 4; i++){
+            overShootMax = (abs(ret.rawSpeed[i]) > overShootMax ) ? abs(ret.rawSpeed[i]) : overShootMax;
+        }
+
+        for(int i = 0; i < 4; i++){
+            ret.rawSpeed[i] /= overShootMax;
+        }
+
+
+        // if((power + abs(w)) > 1){
+        //     ret.fl /= power + w;
+        //     ret.fr /= power + w;
+        //     ret.bl /= power + w;
+        //     ret.br /= power + w;
+        // };
 
         return ret;
     }
@@ -71,15 +114,22 @@ public:
     static void cmdVelCallback(const void* msgIn){
         const geometry_msgs__msg__Twist * msg = (const geometry_msgs__msg__Twist *)msgIn;
 
-        wheelSpeed mapped = map(msg->linear.x, msg->linear.y, msg->angular.z / 4.0f);
-        memcpy(def->handler->speeds, &mapped, sizeof(wheelSpeed));
+        wheelSpeed mapped = map(msg->linear.y, msg->linear.x, msg->angular.z / 2.0f);
+        memcpy(def->handler->speeds, &mapped, 4 * sizeof(float));
+
+        // def->handler->speeds[4] = msg->linear.x / 2.0f;
+        // def->handler->speeds[5] = msg->linear.y / 2.0f;
         def->handler->update();
 
-        ESP_LOGI("CMD_VEL_SUB", "x %f y %f w %f", 
-            msg->linear.x,
-            msg->linear.y,
-            msg->angular.z
-        );
+        // ESP_LOGI("CMD_VEL_SUB", " x %f y %f w %f fl %f fr %f bl %f br %f ",
+        //     msg->linear.x,
+        //     msg->linear.y,
+        //     msg->angular.z,
+        //     mapped.fl,
+        //     mapped.fr,
+        //     mapped.bl,
+        //     mapped.br
+        // );
     };
 
     qmd* handler;
@@ -88,7 +138,6 @@ private:
     rcl_subscription_t sub;
     geometry_msgs__msg__Twist msgAlloc;
 };
-
 
 
 velDriver* velDriver::def = 0;
