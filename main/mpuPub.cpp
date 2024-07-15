@@ -105,13 +105,13 @@ void mpuPub::mpu_callback(rcl_timer_s* time, int64_t num){
 
     magData.header = data.header;
 
-    data.linear_acceleration.x = (float) accelRaw.x / (8192.0f / 9.8f); 
-    data.linear_acceleration.y = (float) accelRaw.y / (8192.0f / 9.8f); 
-    data.linear_acceleration.z = (float) accelRaw.z / (8192.0f / 9.8f); 
+    data.linear_acceleration.x = -(float) accelRaw.y / (8192.0f / 9.8f); 
+    data.linear_acceleration.y = -(float) accelRaw.x / (8192.0f / 9.8f); 
+    data.linear_acceleration.z = -(float) accelRaw.z / (8192.0f / 9.8f); 
     
-    data.angular_velocity.x = -(float) (gyroRaw.x / (65.5f * 114.591f * 0.5f)) ;
-    data.angular_velocity.y = -(float) (gyroRaw.y / (65.5f * 114.591f * 0.5f)) ; 
-    data.angular_velocity.z = (float) (gyroRaw.z / (65.5f * 114.591f * 0.5f)) ;
+    data.angular_velocity.x = -(float) (gyroRaw.y / (65.5f * 114.591f * 0.5f)) ;
+    data.angular_velocity.y = -(float) (gyroRaw.x / (65.5f * 114.591f * 0.5f)) ; 
+    data.angular_velocity.z = -(float) (gyroRaw.z / (65.5f * 114.591f * 0.5f)) ;
     
 
     memset(data.angular_velocity_covariance, INFINITY, sizeof(data.angular_velocity_covariance));

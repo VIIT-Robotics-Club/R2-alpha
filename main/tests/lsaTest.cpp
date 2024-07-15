@@ -5,20 +5,21 @@
 #include "freertos/task.h"
 #include "esp_log.h"
 
-gpio_num_t rx = GPIO_NUM_6;
-gpio_num_t tx = GPIO_NUM_7;
-gpio_num_t en = GPIO_NUM_5;
-gpio_num_t trg = GPIO_NUM_4;
+
+#define LSA_RX  GPIO_NUM_35
+#define LSA_TX  GPIO_NUM_36
+#define LSA_EN  GPIO_NUM_14
+#define LSA_TRG  GPIO_NUM_13
 
 #define configTICK_RATE_HZ 1000
 #define TAG "TEST"
 
 int juncCount = 0;
 
-extern "C" void app_main(void);
+// extern "C" void app_main(void);
 
-void app_main(void) {
-    lsaHandler uartHandle(tx, rx, en, trg);
+extern "C" void app_main(void) {
+    lsaHandler uartHandle(LSA_TX, LSA_RX, LSA_EN, LSA_TRG);
 
     while (true) {
         uartHandle.update();

@@ -7,14 +7,22 @@
 
 #define ESP32S3
 #ifdef ESP32S3
-//...............................ESP1.........................
+
 #define A_LUNA_SCL GPIO_NUM_3
 #define A_LUNA_SDA GPIO_NUM_9
+
 #define A_TX0 GPIO_NUM_43
 #define A_RX0 GPIO_NUM_44
 #define A_TX1 GPIO_NUM_17
 #define A_RX1 GPIO_NUM_18
 
+
+#define LSA_RX  GPIO_NUM_35
+#define LSA_TX  GPIO_NUM_36
+// #define LSA_RX  GPIO_NUM_41
+// #define LSA_TX  GPIO_NUM_40
+#define LSA_EN  GPIO_NUM_14
+#define LSA_TRG  GPIO_NUM_13
 
 // FL
 #define A_DIR1 GPIO_NUM_18
@@ -47,10 +55,11 @@
 // lift interrupt pins
 #define LIFT_UPPER_INTR GPIO_NUM_1
 #define LIFT_LOWER_INTR GPIO_NUM_2
+#define OBJECT_LIMIT_SW GPIO_NUM_38
 
 
-#define MPU_SDA GPIO_NUM_13
-#define MPU_SCL GPIO_NUM_14
+#define MPU_SDA GPIO_NUM_11
+#define MPU_SCL GPIO_NUM_10
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       
 
 #define ICM_CS GPIO_NUM_10
@@ -59,7 +68,6 @@
 #define ICM_MOSI GPIO_NUM_13
 
 #else
-
 
     #define A_LUNA_SCL GPIO_NUM_22
     #define A_LUNA_SDA GPIO_NUM_21

@@ -3,6 +3,7 @@
 
 
 #define LUNA_DEF_FREQ 10
+#define LUNA_COUNT (6)
 class lunaPub : public urosElement {
 
 public:
@@ -20,10 +21,7 @@ public:
 private:
     float pubDelayMs = 1000 / LUNA_DEF_FREQ;
     rcl_timer_t timer;
-    rcl_publisher_t lunaPublisher1;
-    rcl_publisher_t lunaPublisher2;
-    rcl_publisher_t lunaPublisher3;
-    rcl_publisher_t lunaPublisher4;
+    rcl_publisher_t lunaPublisher[LUNA_COUNT];
     static lunaHandler* luna_handler;
     static lunaPub* luna_pub;
 

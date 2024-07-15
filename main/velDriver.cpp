@@ -71,8 +71,10 @@ void velDriver::cmdVelCallback(const void* msgIn){
 
 
     // map linear z velocity to gripper lift
-    def->handler->speeds[4] = (abs(msg->angular.x) > 1.0f) ?  0.0f : msg->angular.x;
-    def->handler->speeds[5] = (abs(msg->linear.z) > 1.0f)  ?  0.0f : msg->linear.z; 
+    if(msg->angular.y){
+        def->handler->speeds[4] = (abs(msg->angular.x) > 1.0f) ?  0.0f : msg->angular.x;
+        def->handler->speeds[5] = (abs(msg->linear.z) > 1.0f)  ?  0.0f : msg->linear.z; 
+    }
 
 
     // def->handler->speeds[4] = msg->linear.x / 2.0f;
